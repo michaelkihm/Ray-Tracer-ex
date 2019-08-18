@@ -1,0 +1,9 @@
+#ignore files
+*.png
+*.o
+
+#directories
+/build/*
+/hw3_testscenes/*
+/hw3_submissionscenes/*
+/.vscode/*
