@@ -15,7 +15,7 @@ public:
 	// void setNormal();
 	// vec3 getNormal();
 private:
-	const vec4 v0,v1,v2;
+	const vec4 A,B,C;
 	const float kEpsilon = 1e-8;
 
     //methods

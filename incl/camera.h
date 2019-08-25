@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <cassert>
 
 using namespace std;
 
@@ -33,6 +34,7 @@ class Camera{
         //methods
         void initCamera();
         void initUpVector();
+        void printMatFour(glm::mat4 &matrix);
 
 
 
