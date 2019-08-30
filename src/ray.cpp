@@ -5,7 +5,7 @@ Ray::Ray( const Camera _cam, Size image_size, int i, int j)
 :img_size(image_size),cam(_cam)
 {
     computeDirectionVector(i,j);
-    origin = cam.getPosition();
+    origin = glm::vec4(cam.getPosition(),1);
 }
 
 // i = row  j= column
@@ -36,8 +36,8 @@ void Ray::computeDirectionVector(int i, int j){
 
    
     //compute direction
-    direction = glm::normalize(alpha*cam.getU() + beta*cam.getV() - cam.getW());
-
+    glm::vec3 temp_direction = glm::normalize(alpha*cam.getU() + beta*cam.getV() - cam.getW());
+    direction = glm::vec4(temp_direction,0);
 
     //test stuff
   

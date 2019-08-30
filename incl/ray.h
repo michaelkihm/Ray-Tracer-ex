@@ -19,12 +19,12 @@ class Ray{
         Ray(){ }
         Ray (const Camera _cam, Size image_size, int i, int j);
         ~Ray(){ }
-        inline glm::vec3 getOrigin() const {return origin;}
-        inline glm::vec3 getDirection() const {return direction;}
+        inline glm::vec4 getOrigin() const {return origin;}
+        inline glm::vec4 getDirection() const {return direction;}
 
     private:
-        glm::vec3 direction;
-        glm::vec3 origin;
+        glm::vec4 direction;
+        glm::vec4 origin;
         float fov_x, fov_y;
         Size img_size;
         Camera cam;

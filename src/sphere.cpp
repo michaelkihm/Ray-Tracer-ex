@@ -34,10 +34,14 @@ boost::optional<float> Sphere::Intersect(const Ray r)
         t0 = tca - thc; 
         t1 = tca + thc; 
 #else 
+        //intstancing
+        vec4 ray_origin = glm::inverse(transform) * r.getOrigin();
+        vec4 ray_direction = glm::inverse(transform) * r.getDirection();
+
         // analytic solution
-        vec3 L = r.getOrigin() - center; 
-        float a = glm::dot(r.getDirection(),r.getDirection()); 
-        float b = 2 * glm::dot(r.getDirection(),L);
+        vec4 L = ray_origin - vec4(center,1); 
+        float a = glm::dot(ray_direction,ray_direction); 
+        float b = 2 * glm::dot(ray_direction,L);
         float c = glm::dot(L,L) - radius2;
         if (!solveQuadratic(a, b, c, t0, t1)) 
             return boost::none; 
@@ -52,8 +56,13 @@ boost::optional<float> Sphere::Intersect(const Ray r)
         } 
  
         //t = t0;
-        //compute normal
-        Phit = r.getOrigin() + t0*r.getDirection();
+        //compute normal and hit point
+        vec4 P0ht = transform * ray_origin;
+		vec4 dHt = transform * ray_direction;
+		
+		vec4 Pt = P0ht + t0 * dHt;
+		Phit = vec3(Pt.x/Pt.w, Pt.y/Pt.w, Pt.z/Pt.w);
+        //Phit = r.getOrigin() + t0*r.getDirection();
         computeNormal();
  
         return t0; 

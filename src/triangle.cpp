@@ -1,9 +1,13 @@
 #include "triangle.h"
 
 
-Triangle::Triangle(vec4 _v1, vec4 _v2, vec4 _v3) : A(_v1),B(_v2),C(_v3)
+
+
+Triangle::Triangle(vec4 _v1, vec4 _v2, vec4 _v3, mat4 _transform) : A_ut(_v1),B_ut(_v2),C_ut(_v3) 
 {
+    transform = _transform;
     normal = vec3(0.0f);
+    transformVertices();
 
 }
 
@@ -19,8 +23,8 @@ Triangle::~Triangle()
 }
 
 void Triangle::computeNormal(){
-    glm::vec3 BA = glm::vec3(B.x,B.y,B.z) - glm::vec3(A.x,A.y,A.z);
-    glm::vec3 CA = glm::vec3(C.x,C.y,C.z) - glm::vec3(A.x,A.y,A.z);
+    glm::vec3 BA = B -A;
+    glm::vec3 CA = C - A;
     normal = glm::normalize(glm::cross(BA,CA));
 }
 
@@ -28,41 +32,43 @@ void Triangle::computeNormal(){
 boost::optional<float> Triangle::Intersect(const Ray r)
 {
 
-    // Step 1: finding intersection point Q
+    vec3 ray_origin = vec3(r.getOrigin().x,r.getOrigin().y,r.getOrigin().z);
+    vec3 ray_direction = vec3(r.getDirection().x,r.getDirection().y,r.getDirection().z);
 
+    // Step 1: finding intersection point Q
     computeNormal();
-    float NdotRayDirection = glm::dot(normal,r.getDirection());
+    float NdotRayDirection = glm::dot(normal,ray_direction);
     //check if ray is parallel to plane
     if (fabs(NdotRayDirection) < kEpsilon) // almost 0 
          return boost::none; // they are parallel so they don't intersect !
     //determine t of ray P0 + d*t   -> t = (n*A - n*P0)/n*d
-    float t = ( glm::dot(normal,glm::vec3(A.x,A.y,A.z))-glm::dot(normal,r.getOrigin()) )/NdotRayDirection;
+    float t = ( glm::dot(normal,glm::vec3(A.x,A.y,A.z))-glm::dot(normal,ray_origin) )/NdotRayDirection;
     if(t < 0)
         return boost::none; //ray is behind the ray origin
     
     //compute intersection point Q with ray equation
-    glm::vec3 Q = r.getOrigin() + t * r.getDirection();
+    glm::vec3 Q = ray_origin + t * ray_direction;
     
     // Step 2: is Q inside or outside the triangle
 
     //check 1st edge BA
-    glm::vec3 BA = glm::vec3(B.x,B.y,B.z) - glm::vec3(A.x,A.y,A.z);
-    glm::vec3 QA = glm::vec3(Q.x,Q.y,Q.z) - glm::vec3(A.x,A.y,A.z);
+    glm::vec3 BA = B - A;
+    glm::vec3 QA = Q - A;
     glm::vec3 cross = glm::cross(BA,QA);
     assert(cross.length() == 3);
     if(glm::dot(cross,normal) < 0)
         return boost::none;
 
     //check 2nd edge CB
-    glm::vec3 CB = glm::vec3(C.x,C.y,C.z) - glm::vec3(B.x,B.y,B.z);
-    glm::vec3 QB = glm::vec3(Q.x,Q.y,Q.z) - glm::vec3(B.x,B.y,B.z);
+    glm::vec3 CB = C - B;
+    glm::vec3 QB = Q - B;
     cross = glm::cross(CB,QB);
     if(glm::dot(cross,normal) < 0)
         return boost::none;
 
     //check 3nd edge AC
-    glm::vec3 AC = glm::vec3(A.x,A.y,A.z) - glm::vec3(C.x,C.y,C.z);
-    glm::vec3 QC = glm::vec3(Q.x,Q.y,Q.z) - glm::vec3(C.x,C.y,C.z);
+    glm::vec3 AC = A - C;
+    glm::vec3 QC = Q - C;
     cross = glm::cross(AC,QC);
     if(glm::dot(cross,normal) < 0)
         return boost::none;
@@ -71,6 +77,20 @@ boost::optional<float> Triangle::Intersect(const Ray r)
     return t;
 
 }
+
+void Triangle::transformVertices(){
+    A_ut = transform * A_ut;
+    B_ut = transform * B_ut;
+    C_ut = transform * C_ut;
+    A = dehomogenize(A_ut);
+    B = dehomogenize(B_ut);
+    C = dehomogenize(C_ut);
+}
+
+vec3 Triangle::dehomogenize(vec4 in){
+    return vec3(in.x/in.w,in.y/in.w,in.z/in.w);
+}
+
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/barycentric-coordinates
 // boost::optional<float> Triangle::Intersect(const Ray r)

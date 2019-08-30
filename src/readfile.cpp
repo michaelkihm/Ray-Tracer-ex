@@ -202,14 +202,14 @@ void FileReader::readfile(const char* filename)
 						vec4 vertex1 = vertices[values_i[1]];
 						vec4 vertex2 = vertices[values_i[2]];
 
-						shared_ptr<Triangle> t( new Triangle(vertex0, vertex1, vertex2));
+						shared_ptr<Triangle> t( new Triangle(vertex0, vertex1, vertex2, transfstack.top()));
 						// t->diffuse = diffuse;
 						// t->specular = specular;
 						// t->emission = emission;
 						// t->shininess = shininess;
 						// t->ambient = ambient;
             t->material = Material(diffuse, ambient, specular, emission, shininess);
-						t->transform = transfstack.top();
+						//t->transform = transfstack.top();
 						//triangles.push_back(t);
             scene.push_back(t);
             
