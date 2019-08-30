@@ -92,5 +92,5 @@ boost::optional<tuple<float, shared_ptr<Primitive>> > IntersectScene(const Ray &
 
 cv::Vec3b FindColor(tuple<float,shared_ptr<Primitive>> hit){
   auto mat = get<1>(hit)->material;
-  return Vec3b(static_cast<uchar>(/*mat.ambient.r**/0), /*static_cast<uchar>(mat.ambient.g*256)*/0,/*static_cast<uchar>(mat.ambient.b*256)*/255);
+  return Vec3b(static_cast<uchar>(mat.ambient.b*255), static_cast<uchar>(mat.ambient.g*255),static_cast<uchar>(mat.ambient.r*255));
 }
