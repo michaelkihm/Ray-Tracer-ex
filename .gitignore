@@ -1,6 +1,8 @@
 #ignore files
 *.png
 *.o
+*.sh
+*.zip
 
 #directories
 /build/*

@@ -7,7 +7,7 @@ BUILDDIR = build
 VPATH = src 
 
 #OBJ = main.o bar.o#function.o bar.o
-OBJ = $(addprefix $(BUILDDIR)/, main.o readfile.o triangle.o sphere.o ray.o camera.o light.o)
+OBJ = $(addprefix $(BUILDDIR)/, main.o readfile.o triangle.o sphere.o ray.o camera.o light.o glm_helper.o)
 
 vpath %.cpp src
 
