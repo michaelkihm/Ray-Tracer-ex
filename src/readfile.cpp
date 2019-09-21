@@ -28,9 +28,11 @@
 #include "readfile.h"
 
 
-// You may not need to use the following two functions, but it is provided
-// here for convenience
-
+//constructor to set standard values
+FileReader::FileReader(){
+  ambient = vec3(0.2,0.2,0.2);
+  attenuation = vec3(1,0,0);
+}
 
 
 
@@ -158,7 +160,14 @@ void FileReader::readfile(const char* filename)
           if (validinput) {
             shininess = values[0]; 
           }
-        } else if (cmd == "size") {
+        } 
+        else if (cmd == "attenuation"){
+          validinput = readvalsf(s,3,values);
+          if(validinput){
+            attenuation = glm::vec3(values[0],values[1],values[2]);
+          }
+        }
+        else if (cmd == "size") {
           validinput = readvalsf(s,2,values); 
           if (validinput) { 
             image_width = static_cast<int>(values[0]); 
@@ -202,7 +211,7 @@ void FileReader::readfile(const char* filename)
 						vec4 vertex1 = vertices[values_i[1]];
 						vec4 vertex2 = vertices[values_i[2]];
 
-						shared_ptr<Triangle> t( new Triangle(vertex0, vertex1, vertex2, transfstack.top()));
+						shared_ptr<Triangle> t( new Triangle(vertex0, vertex1, vertex2, transfstack.top(),ambient));
 						// t->diffuse = diffuse;
 						// t->specular = specular;
 						// t->emission = emission;
@@ -220,7 +229,7 @@ void FileReader::readfile(const char* filename)
           if(validinput){
             vec3 center = vec3(values[0], values[1], values[2]);
             float radius = values[3];
-            shared_ptr<Sphere> sp(new Sphere(center, radius));
+            shared_ptr<Sphere> sp(new Sphere(center, radius, ambient));
             // sp.diffuse = diffuse;
 						// sp.specular = specular;
 						// sp.emission = emission;

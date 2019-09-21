@@ -18,6 +18,7 @@ class Ray{
     public:
         Ray(){ }
         Ray (const Camera _cam, Size image_size, int i, int j);
+        Ray (const glm::vec4 _origin, const glm::vec4 _direction);
         ~Ray(){ }
         inline glm::vec4 getOrigin() const {return origin;}
         inline glm::vec4 getDirection() const {return direction;}

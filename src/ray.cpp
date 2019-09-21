@@ -8,6 +8,11 @@ Ray::Ray( const Camera _cam, Size image_size, int i, int j)
     origin = glm::vec4(cam.getPosition(),1);
 }
 
+Ray::Ray (const glm::vec4 _origin, const glm::vec4 _direction):origin(_origin),direction(_direction)
+{
+
+}
+
 // i = row  j= column
 void Ray::computeDirectionVector(int i, int j){
     

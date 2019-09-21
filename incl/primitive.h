@@ -17,12 +17,14 @@ public:
 
 	//material properties
 	Material material;
+	glm::vec3 ambient;
 	//char* type;
 	//transform
 	mat4 transform;
 
 	virtual boost::optional<float> Intersect(const Ray r) = 0;
 	virtual void computeNormal() = 0; 
+	virtual vec3 getPhit() = 0;
 	
 
 protected:

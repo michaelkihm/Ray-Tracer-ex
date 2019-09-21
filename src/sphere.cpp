@@ -1,9 +1,10 @@
 #include "sphere.h"
 
 
-Sphere::Sphere(vec3 pos, float _radius) :center(pos),radius(_radius){
+Sphere::Sphere(vec3 pos, float _radius, vec3 _ambient) :center(pos),radius(_radius){
     radius2 = pow(radius,2);
     normal = vec3(0.0);
+    ambient = _ambient;
 }
 
 Sphere::~Sphere(){ }
@@ -14,8 +15,18 @@ vec3 Sphere::getNormal(){
      return normal;
 }
 
-void Sphere::computeNormal(){
-    normal = glm::normalize(Phit - center);     
+void Sphere::computeNormal(){  
+    vec4 Papp = vec4(Phit, 1);
+
+	Papp = glm::inverse(transform) * Papp;
+    vec3 P3app = dehomogenize(Papp);
+	vec3 diff = P3app - center;
+	normal =  glm::normalize(diff);
+
+	vec4 normal_4 = vec4(normal.x, normal.y, normal.z, 0);
+	normal_4 = glm::transpose(glm::inverse(transform)) * normal_4;
+	normal = glm::normalize(vec3(normal_4.x,normal_4.y,normal_4.z));
+
 }
 
 //https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection
@@ -85,3 +96,7 @@ bool Sphere::solveQuadratic(const float &a, const float &b, const float &c, floa
  
     return true; 
 } 
+
+ vec3 Sphere::getPhit(){
+     return Phit;
+ }

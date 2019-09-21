@@ -35,12 +35,15 @@ using namespace std;
 class FileReader
 {
     public:
-        FileReader(){ }
+        FileReader();
         ~FileReader(){ }
         Camera getCamera();
         vector<std::shared_ptr<Primitive>> getScene();
         cv::Size getImageSize();
         void readfile (const char * filename);
+        vector<Light> getLights() { return lights; }
+        vec3 getAttenuation() { return attenuation; }
+        string getFilename() {return out_filename; }
 
     private:
         int maxdepth = 5;
@@ -60,12 +63,14 @@ class FileReader
         float shininess;
         vector<Light> lights;
         string out_filename;
+        vec3 attenuation;
 
         void matransform (stack<glm::mat4> &transfstack, float * values) ;
         void rightmultiply (const glm::mat4 & M, stack<glm::mat4> &transfstack) ;
         //bool readvals (stringstream &s, const int numvals, float * values) ;
         bool readvalsf(stringstream &s, const int numvals, float* values); 
         bool readvalsi(stringstream &s, const int numvals, int* values);
+        
 
 
 };
