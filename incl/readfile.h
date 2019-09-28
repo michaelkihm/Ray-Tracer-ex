@@ -44,6 +44,7 @@ class FileReader
         vector<Light> getLights() { return lights; }
         vec3 getAttenuation() { return attenuation; }
         string getFilename() {return out_filename; }
+        int getMaxDepth() { return maxdepth; }
 
     private:
         int maxdepth = 5;

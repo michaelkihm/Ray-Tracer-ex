@@ -194,7 +194,7 @@ void FileReader::readfile(const char* filename)
             maxdepth = values[0];
         }
         else if (cmd == "output"){
-					out_filename = (char*) malloc(100);
+					//out_filename = str;
 					s >> out_filename;
         }
         else if(cmd == "vertex"){
@@ -203,6 +203,10 @@ void FileReader::readfile(const char* filename)
 						vec4 vertex = vec4(values[0],values[1],values[2],1.0);
 						vertices.push_back(vertex);
 					}
+        }
+        else if(cmd == "maxverts")
+        {
+
         }
         else if(cmd == "tri"){
           validinput = readvalsi(s,3,values_i); // 

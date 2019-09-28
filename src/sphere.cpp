@@ -72,7 +72,7 @@ boost::optional<float> Sphere::Intersect(const Ray r)
 		vec4 dHt = transform * ray_direction;
 		
 		vec4 Pt = P0ht + t0 * dHt;
-		Phit = vec3(Pt.x/Pt.w, Pt.y/Pt.w, Pt.z/Pt.w);
+		Phit = dehomogenize(Pt);// vec3(Pt.x/Pt.w, Pt.y/Pt.w, Pt.z/Pt.w);
         //Phit = r.getOrigin() + t0*r.getDirection();
         computeNormal();
  

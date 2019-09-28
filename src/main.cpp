@@ -7,22 +7,24 @@
 #include <iostream>
 #include "readfile.h"
 #include "camera.h"
-//#include "ray.h"
 #include <tuple>
 #include <cmath>
+#include <boost/optional/optional_io.hpp>
 
 using namespace std;
 using namespace cv;
 
 const float  eps=1e-4;
+const uint color_channels = 3;
 
-boost::optional< tuple<float, shared_ptr<Primitive>> >IntersectScene(const Ray &r, vector<std::shared_ptr<Primitive>> &scene);
-cv::Vec3b ComputeLight(tuple<float,shared_ptr<Primitive>> hit, vector<Light> &lights, vector<std::shared_ptr<Primitive>> &scene);
-bool IsObjectInShadow(shared_ptr<Primitive> object, const Light &light, vector<std::shared_ptr<Primitive>> &scene, glm::vec3 direction);
-//cv::Vec3b ComputeLight(shared_ptr<Primitive> object, const Light &light, const float intersection_position, const bool inShadow);
+boost::optional< tuple<float, shared_ptr<Primitive>,vec3> >IntersectScene(const Ray &r, vector<std::shared_ptr<Primitive>> &scene);
+glm::vec3 ComputeLight(tuple< float,shared_ptr<Primitive>, vec3 > hit, glm::vec3 eye_pos, int depth);
+bool IsObjectInShadow(shared_ptr<Primitive> object, const Light &light, glm::vec3 direction, float distance, float r_obj_light);
+glm::vec3 getSpecularDirection(glm::vec3 rayDirection, glm::vec3 normal);
 
 vec3 light_attenuation;
-vec3 eye_pos;
+vector<Light> lights;
+vector<shared_ptr<Primitive>> scene;
 
 int main(int argc, char* argv[])
 {
@@ -33,12 +35,13 @@ int main(int argc, char* argv[])
   }
   FileReader reader;
   reader.readfile(argv[1]);
-  auto scene = reader.getScene(); 
+  scene = reader.getScene(); 
+  lights = reader.getLights();
   auto camera = reader.getCamera();
-  auto lights = reader.getLights();
   light_attenuation = reader.getAttenuation();
   Mat image = Mat::zeros(reader.getImageSize(),CV_8UC3);
-  eye_pos = camera.getPosition();
+  vec3 eye_pos = camera.getPosition();
+  int maxdepth = reader.getMaxDepth();
   
   //main loop
   for(int i = 0; i < image.rows; i++)
@@ -47,112 +50,126 @@ int main(int argc, char* argv[])
     {
       Ray r(camera, image.size(), i,j);
       auto hit = IntersectScene(r,scene);
-      if(hit)
-        image.at<Vec3b>(i,j) = ComputeLight(*hit, lights, scene);
+      if(hit){
+        glm::vec3 color = ComputeLight(*hit, eye_pos, maxdepth);
+        image.at<Vec3b>(i,j) = Vec3b(static_cast<uchar>(color.b*255), static_cast<uchar>(color.g*255),static_cast<uchar>(color.r*255));
+      }
 
     }
   }
 
   imshow("result",image);
   imwrite(reader.getFilename(),image);
-  cvWaitKey();
-
-  // Mat test = imread("hw3_testscenes/scene1-camera4.jpg");
-  // Mat result = image - test;
-  // imshow("result",result);
-  // cvWaitKey();  
+  cvWaitKey(); 
   return 0;
 }
 
 
-boost::optional<tuple<float, shared_ptr<Primitive>> > IntersectScene(const Ray &r, vector<std::shared_ptr<Primitive>> &scene)
+boost::optional< tuple<float, shared_ptr<Primitive>,vec3> > IntersectScene(const Ray &r, vector<std::shared_ptr<Primitive>> &scene)
 {
   int scene_index = -1;
-  //boost::optional<float> t;
   float min_t = std::numeric_limits<float>::max();
   shared_ptr<Primitive> object = nullptr;
-  //int counter=0;
 
 
 
   for(auto & it : scene)
   {
     auto t = it->Intersect(r);
-    if(t) //it there an intersection
+    if(t) //is there an intersection
     {
-      if(*t < min_t)
+      if(t < min_t && *t > 0)
       {
         min_t = *t;
         object = it;
-        //scene_index = counter;
       }
     }
-   // counter++;
   }
 
   if(object == nullptr)
     return boost::none;
   else
   {
-    return make_tuple(min_t,object);
+    return make_tuple(min_t,object,vec3(r.getDirection().x,r.getDirection().y,r.getDirection().z));
   }
   
 
 }
 
-cv::Vec3b ComputeLight(tuple<float,shared_ptr<Primitive>> hit, vector<Light> &lights, vector<std::shared_ptr<Primitive>> &scene){
-  auto mat = get<1>(hit)->material;
+glm::vec3 ComputeLight(tuple<float,shared_ptr<Primitive>,vec3> hit, vec3 eye_pos, int depth){
+  auto hit_primitive = get<1>(hit);
+  auto mat = hit_primitive->material;
   auto t = get<0>(hit);
   
-  glm::vec3 out_color, light_sum = glm::vec3(0);
+  glm::vec3 out_color=glm::vec3(0);
   glm::vec3 diffuse_term, specular_term, direction, half_vector, view_direction;
-  float distance_r, attenuation;
-  glm::vec3 normal = get<1>(hit)->getNormal();
+  float distance_obj_light, attenuation;
+  glm::vec3 normal = hit_primitive->getNormal();
+  glm::vec3 object_pos = hit_primitive->getPhit();
+  if(depth){
+    for(auto c_light : lights)
+    {
+      glm::vec3 light_pos = glm::vec3(c_light.getPos().x,c_light.getPos().y,c_light.getPos().z);
+      distance_obj_light = sqrt(glm::dot(object_pos - light_pos, object_pos - light_pos));
+      if( c_light.getType() == LightType::point )
+      {
+        direction = glm::normalize(light_pos-object_pos);
+        attenuation = 1/(light_attenuation[0]+light_attenuation[1]*distance_obj_light + light_attenuation[2]*pow(distance_obj_light,2));
+      }
+      else
+      {
+        direction =glm::normalize( light_pos );
+        attenuation = 1;
+      }
 
-  for(auto c_light : lights)
-  {
-    glm::vec3 light_pos = glm::vec3(c_light.getPos().x,c_light.getPos().y,c_light.getPos().z);
-    glm::vec3 object_pos = get<1>(hit)->getPhit();
-    if( c_light.getType() == LightType::point )
-    {
-      direction = glm::normalize(light_pos-object_pos);
-      distance_r = sqrt(glm::dot(object_pos - light_pos, object_pos - light_pos));
-      attenuation = 1/(light_attenuation[0]+light_attenuation[1]*distance_r + light_attenuation[2]*pow(distance_r,2));
-    }
-    else
-    {
-      direction =glm::normalize( light_pos );
-      attenuation = 1;
-    }
+      if(IsObjectInShadow(hit_primitive, c_light, direction,t,distance_obj_light))
+        continue;
+      else
+      {
+        //diffuse
+        glm::vec3 light_attenuated = c_light.getColor()/attenuation;
+        diffuse_term = mat.diffuse * light_attenuated * std::max(glm::dot(normal,direction),float(0));
 
-    if(IsObjectInShadow(get<1>(hit), c_light, scene, direction))
-      continue;
-    else
-    {
-  
-      glm::vec3 light_attenuated = c_light.getColor()/attenuation;
-      diffuse_term = mat.diffuse * light_attenuated * std::max(glm::dot(normal,direction),float(0));
-      view_direction = glm::normalize(eye_pos - object_pos);
-      half_vector = glm::normalize(direction + view_direction);
-      specular_term = mat.specular * light_attenuated * pow(std::max(glm::dot(normal,half_vector),float(0)),mat.shininess);
+        //specular
+        view_direction = glm::normalize(eye_pos - object_pos);
+        half_vector = glm::normalize(direction + view_direction);
+        specular_term = mat.specular * light_attenuated * pow(std::max(glm::dot(normal,half_vector),float(0)),mat.shininess);
+        
+        out_color += diffuse_term + specular_term;
+        
+      }
+
+
       
-      light_sum += diffuse_term + specular_term;
-      
     }
 
+    out_color += mat.ambient + mat.emission;
 
-    
+    //recursive mirror term
+    vec3 new_direction = getSpecularDirection(get<2>(hit) ,normal);
+    vec3 offset = eps * new_direction;
+    vec3 new_origin = object_pos + offset;
+    Ray new_ray(vec4(new_origin,1),vec4(new_direction,0));
+    auto new_hit = IntersectScene(new_ray,scene);
+    if(new_hit){
+      vec3 add = ComputeLight(*new_hit,object_pos,depth-1);
+      out_color += mat.specular * add;
+    }
   }
 
-  out_color = mat.ambient + mat.emission + light_sum;
+  for(uint i = 0; i < color_channels; i++)
+  {
+    if(out_color[i] > 1) out_color[i]=1;
+    else if(out_color[i] < 0) out_color[i]=0;
+  }
 
-  return Vec3b(static_cast<uchar>(out_color.b*255), static_cast<uchar>(out_color.g*255),static_cast<uchar>(out_color.r*255));
+  return out_color;
 }
 
 // --------------------------
 //IsObjectInShadow
 // -------------------------
-bool IsObjectInShadow(shared_ptr<Primitive> object, const Light &light, vector<std::shared_ptr<Primitive>> &scene, glm::vec3 direction)
+bool IsObjectInShadow(shared_ptr<Primitive> object, const Light &light, glm::vec3 direction, float distance, float r_obj_light)
 {
 
   glm::vec4 ray_direction = glm::vec4(direction,0);
@@ -165,18 +182,17 @@ bool IsObjectInShadow(shared_ptr<Primitive> object, const Light &light, vector<s
   for(auto & it : scene)
   {
     auto t = it->Intersect(ray);
-    if(t) //it there an intersection
-      return true;
+    if(t){ //it there an intersection
+      if(*t < r_obj_light && *t > 0)
+        return true;
+    }
   }
 
   return false;
 }
 
-// cv::Vec3b ComputeLight(shared_ptr<Primitive> object, const Light &light, const float intersection_position, const bool inShadow)
-// {
 
-
-
-//   return vec3(0,0,0);
-// }
- //vec4 ComputeLight (const in vec3 direction, const in vec4 lightcolor, const in vec3 normal, const in vec3 halfvec, const in vec4 mydiffuse, const in vec4 myspecular, const in float myshininess)
+glm::vec3 getSpecularDirection(glm::vec3 rayDirection, glm::vec3 normal){
+	//r = d − 2(d · n)n
+  return glm::normalize(rayDirection - 2*glm::dot(rayDirection,normal)*normal);
+}
