@@ -191,7 +191,7 @@ void FileReader::readfile(const char* filename)
         else if(cmd == "maxdepth"){ //max number of bounces for a ray
           validinput = readvalsi(s,1,values_i);
           if(validinput)
-            maxdepth = values[0];
+            maxdepth = values_i[0];
         }
         else if (cmd == "output"){
 					//out_filename = str;
